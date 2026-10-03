@@ -17,6 +17,8 @@ PORT = int(os.environ.get("PORT", "8734"))
 LLM_URL = os.environ.get("LMSTUDIO_URL", "http://localhost:1234").rstrip("/")
 # Substring of the model id to prefer among the models LM Studio lists.
 LLM_MODEL = os.environ.get("LLM_MODEL", "bonsai")
+# "none" skips the model's thinking phase: much faster, and extraction does not need it.
+LLM_REASONING = os.environ.get("LLM_REASONING", "none")
 MAX_BODY = 256 * 1024
 
 
@@ -66,6 +68,8 @@ class Handler(SimpleHTTPRequestHandler):
             messages = json.loads(self.rfile.read(n))["messages"]
             payload = {"model": pick_model(), "messages": messages, "stream": True,
                        "temperature": 0.1, "max_tokens": 3000}
+            if LLM_REASONING:
+                payload["reasoning_effort"] = LLM_REASONING
             req = urllib.request.Request(
                 LLM_URL + "/v1/chat/completions", data=json.dumps(payload).encode(),
                 headers={"Content-Type": "application/json"})
@@ -88,7 +92,7 @@ class Handler(SimpleHTTPRequestHandler):
             pass  # browser pressed Stop
 
     def log_message(self, fmt, *args):
-        if "/api/" in (args[0] if args else ""):
+        if args and "/api/" in str(args[0]):
             sys.stderr.write("%s\n" % (fmt % args))
 
 
