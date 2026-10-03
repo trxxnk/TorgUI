@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>E34 по объявлению</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=Sofia+Sans+Extra+Condensed:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand"><div class="stripes" aria-hidden="true"><i></i><i></i><i></i></div><h1>E34 по объявлению</h1></div>
+    <div class="seg" role="group" aria-label="Режим показа">
+      <button id="modeLook" aria-pressed="true">Как выглядит</button>
+      <button id="modeMap" aria-pressed="false">Карта данных</button>
+    </div>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="gl" aria-label="3D-модель кузова BMW E34"></canvas>
+    <div class="carTag"><i class="swatch" id="swatch"></i><div><b id="carTitle">BMW E34</b><span id="carColor"></span></div></div>
+    <div class="legend" id="legend" hidden>
+      <span><i class="dot d-ok"></i>в порядке</span><span><i class="dot d-claim"></i>со слов продавца</span>
+      <span><i class="dot d-warn"></i>дефект</span><span><i class="dot d-bad"></i>серьёзно</span><span><i class="dot d-unk"></i>нет данных</span>
+    </div>
+    <div class="hint">Тяните — вращать · колесо — масштаб · клик — деталь</div>
+  </div>
+
+  <aside class="side">
+    <section>
+      <h2>Объявление</h2>
+      <div class="chips" id="samples"></div>
+      <textarea id="listing" aria-label="Текст объявления" placeholder="Вставьте сюда текст объявления с av.by"></textarea>
+      <div class="row">
+        <button class="btn" id="run">Разобрать объявление</button>
+        <button class="btn ghost" id="stop" hidden>Стоп</button>
+      </div>
+      <p class="status" id="status" aria-live="polite"></p>
+      <p class="note" id="agent">Ищу модель в LM Studio…</p>
+      <p class="note">Загрузка по ссылке с av.by пока не сделана: текст объявления нужно скопировать вручную.</p>
+    </section>
+
+    <section>
+      <h2>Что известно</h2>
+      <p class="big" id="cover"></p>
+      <div class="bar" id="bar"></div>
+      <div class="counts" id="counts"></div>
+      <p class="note" id="summary"></p>
+    </section>
+
+    <section>
+      <h2>Деталь</h2>
+      <div class="detail" id="detail"></div>
+    </section>
+
+    <section>
+      <h2>Уточнить</h2>
+      <p class="note">Ответ продавца или то, что заметили сами. Модель изменится только в названных деталях.</p>
+      <div class="row">
+        <input type="text" id="refine" aria-label="Уточнение" placeholder="Продавец пишет: правый порог сгнил насквозь">
+        <button class="btn ghost" id="refineBtn">Применить</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Все детали</h2>
+      <div id="parts" style="display:flex;flex-direction:column;gap:12px"></div>
+    </section>
+
+    <section>
+      <h2>Спросить у продавца</h2>
+      <ol class="qs" id="qs"></ol>
+    </section>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
