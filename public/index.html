@@ -31,14 +31,19 @@
     <section>
       <h2>Объявление</h2>
       <div class="chips" id="samples"></div>
-      <textarea id="listing" aria-label="Текст объявления" placeholder="Вставьте сюда текст объявления с av.by"></textarea>
+      <div class="row">
+        <input type="url" id="url" aria-label="Ссылка на объявление av.by" placeholder="https://cars.av.by/bmw/5-seriya/…">
+        <button class="btn ghost" id="urlBtn">Загрузить</button>
+      </div>
+      <p class="note" id="srcNote" hidden></p>
+      <div class="thumbs" id="photos" hidden></div>
+      <textarea id="listing" aria-label="Текст объявления" placeholder="Или вставьте сюда текст объявления"></textarea>
       <div class="row">
         <button class="btn" id="run">Разобрать объявление</button>
         <button class="btn ghost" id="stop" hidden>Стоп</button>
       </div>
       <p class="status" id="status" aria-live="polite"></p>
       <p class="note" id="agent">Ищу модель в LM Studio…</p>
-      <p class="note">Загрузка по ссылке с av.by пока не сделана: текст объявления нужно скопировать вручную.</p>
     </section>
 
     <section>
@@ -56,9 +61,9 @@
 
     <section>
       <h2>Уточнить</h2>
-      <p class="note">Ответ продавца или то, что заметили сами. Модель изменится только в названных деталях.</p>
+      <p class="note">То, что заметили сами на фото или при осмотре. Модель изменится только в названных деталях. Ответы продавца удобнее вписывать под вопросами ниже.</p>
       <div class="row">
-        <input type="text" id="refine" aria-label="Уточнение" placeholder="Продавец пишет: правый порог сгнил насквозь">
+        <input type="text" id="refine" aria-label="Уточнение" placeholder="На фото видно: правый порог сгнил насквозь">
         <button class="btn ghost" id="refineBtn">Применить</button>
       </div>
     </section>
@@ -70,7 +75,12 @@
 
     <section>
       <h2>Спросить у продавца</h2>
+      <p class="note">Впишите ответ продавца: модель и описание обновятся, а если ответ неполный, появятся уточняющие вопросы.</p>
       <ol class="qs" id="qs"></ol>
+      <div id="qaWrap" hidden>
+        <h4 class="sub">Уже отвечено</h4>
+        <ul class="qs done" id="qa"></ul>
+      </div>
     </section>
   </aside>
 </div>

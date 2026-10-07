@@ -86,7 +86,7 @@ blockquote{margin:0;padding:6px 10px;border-left:3px solid var(--line);color:var
 .plist button[aria-pressed="true"]{border-color:var(--accent);background:var(--panel2)}
 .qs{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
 .qs small{color:var(--muted);display:block}
-input[type=text]{flex:1 1 180px;min-width:0;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+input[type=text],input[type=url]{flex:1 1 180px;min-width:0;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
 
 @media (max-width:880px){
   html,body{height:auto}
@@ -95,3 +95,11 @@ input[type=text]{flex:1 1 180px;min-width:0;background:var(--panel2);border:1px 
   .side{border-left:0;overflow:visible}
   .hint{display:none}
 }
+
+.qs .answer{margin-top:6px}
+.qs .answer .btn{padding:6px 10px}
+.qs.done{list-style:none;padding-left:0;color:var(--muted)}
+.sub{margin:8px 0 6px;font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.thumbs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.thumbs a{flex:none}
+.thumbs img{display:block;height:64px;width:auto;border-radius:4px;border:1px solid var(--line)}
