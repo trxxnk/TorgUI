@@ -32,7 +32,8 @@ const canvas=$('gl'), stage=$('stage');
 let renderer;
 try{ renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true}); }
 catch(e){ stage.insertBefore(el('p','note','Не удалось запустить 3D: браузер не дал WebGL.'),canvas); return; }
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+// ?dpr=2 forces a sharp 3D buffer on a 1x screen; used when capturing docs/demo.gif
+renderer.setPixelRatio(Math.min(+new URLSearchParams(location.search).get('dpr')||window.devicePixelRatio||1,3));
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(32,1,0.1,60);
 scene.add(new THREE.HemisphereLight(0xffffff,0x4a4e58,0.5));
@@ -387,6 +388,7 @@ canvas.addEventListener('pointermove',e=>{
 function up(e){if(down&&down.moved<6&&touches.size===1)select(pick(e),false);touches.delete(e.pointerId);down=null;pinch=0;}
 canvas.addEventListener('pointerup',up);canvas.addEventListener('pointercancel',e=>{touches.delete(e.pointerId);down=null;});
 canvas.addEventListener('pointerleave',()=>{hovered=null;});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&selected&&!/^(INPUT|TEXTAREA)$/.test(e.target.tagName))select(null);});
 canvas.addEventListener('wheel',e=>{e.preventDefault();cam.r=clamp(cam.r*Math.exp(e.deltaY*0.001),4.5,18);cam.zoomed=true;cam.auto=false;},{passive:false});
 
 let last=performance.now();
