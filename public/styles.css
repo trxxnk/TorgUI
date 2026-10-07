@@ -32,7 +32,8 @@ button,input,textarea{font:inherit;color:inherit}
 .stripes{display:flex;gap:3px;transform:skewX(-18deg)}
 .stripes i{display:block;width:6px;height:26px}
 .stripes i:nth-child(1){background:var(--m1)} .stripes i:nth-child(2){background:var(--m2)} .stripes i:nth-child(3){background:var(--m3)}
-h1{font-family:var(--display);font-weight:700;font-size:28px;line-height:1;letter-spacing:.04em;text-transform:uppercase;margin:0}
+h1{font-family:var(--display);font-weight:700;font-size:28px;line-height:1;letter-spacing:.04em;margin:0}
+.tagline{color:var(--muted);font-size:12.5px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel2)}
 .seg button{border:0;background:transparent;padding:6px 12px;cursor:pointer;color:var(--muted)}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}

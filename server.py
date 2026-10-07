@@ -154,7 +154,7 @@ class Handler(SimpleHTTPRequestHandler):
 
 if __name__ == "__main__":
     srv = ThreadingHTTPServer(("127.0.0.1", PORT), partial(Handler, directory=ROOT))
-    print("E34 inspector: http://localhost:%d  (LM Studio: %s, model ~ %s)" % (PORT, LLM_URL, LLM_MODEL))
+    print("TorgUI: http://localhost:%d  (LM Studio: %s, model ~ %s)" % (PORT, LLM_URL, LLM_MODEL))
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
