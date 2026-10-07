@@ -109,3 +109,4 @@ input[type=text],input[type=url]{flex:1 1 180px;min-width:0;background:var(--pan
 .savedItem .chip:first-child{border-radius:6px 0 0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .savedItem .del{border-left:0;border-radius:0 6px 6px 0;color:var(--muted);flex:none}
 .savedItem .del:hover{color:var(--bad)}
+.legend:not([hidden]) ~ .hint{display:none}
