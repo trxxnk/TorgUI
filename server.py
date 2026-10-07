@@ -24,7 +24,7 @@ MAX_BODY = 256 * 1024
 
 
 # Only the numeric offer id is taken from the user's link; the request always goes to api.av.by.
-AV_LINK = re.compile(r"^https?://(?:[a-z0-9-]+\.)?av\.by/(?:[^?#]*/)?(\d{6,12})/?(?:[?#].*)?$", re.I)
+AV_LINK = re.compile(r"^(?:https?://)?(?:[a-z0-9-]+\.)?av\.by/(?:[^?#]*/)?(\d{6,12})/?(?:[?#].*)?$", re.I)
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
 
 
