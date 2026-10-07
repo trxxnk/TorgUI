@@ -449,17 +449,53 @@ const SAMPLES=[
    {t:'q',text:'Можете прислать фото порогов снизу и задних арок изнутри?',part:'sill_l'}]}
 ];
 let currentSample=0;
-function loadSample(i){currentSample=i;showPhotos(null);$('url').value='';$('listing').value=SAMPLES[i].text;resetState();SAMPLES[i].lines.forEach(applyLine);ORDER.forEach(id=>PARTS[id].pulse=0);
+function loadSample(i){if(busy)return;currentSample=i;currentId=null;currentSrc=null;showPhotos(null);$('url').value='';$('listing').value=SAMPLES[i].text;resetState();SAMPLES[i].lines.forEach(applyLine);ORDER.forEach(id=>PARTS[id].pulse=0);renderSaved();
   setStatus('Это пример: объявление выдумано и разобрано заранее. Нажмите «Разобрать», чтобы прогнать его через модель.');renderSamples();select(null);}
 function renderSamples(){const w=$('samples');w.textContent='';SAMPLES.forEach((x,i)=>{const b=el('button','chip',x.label);b.type='button';b.setAttribute('aria-pressed',String(i===currentSample));b.onclick=()=>loadSample(i);w.append(b);});
-  const n=el('button','chip','+ Новое');n.type='button';n.setAttribute('aria-pressed',String(currentSample<0));
-  n.onclick=()=>{if(busy)return;currentSample=-1;showPhotos(null);$('url').value='';$('listing').value='';resetState();select(null);renderSamples();setStatus('Вставьте текст объявления или ссылку на av.by.');$('url').focus();};w.append(n);}
+  const n=el('button','chip','+ Новое');n.type='button';n.setAttribute('aria-pressed',String(currentSample<0&&!currentId));
+  n.onclick=()=>{if(busy)return;currentSample=-1;currentId=null;currentSrc=null;renderSaved();showPhotos(null);$('url').value='';$('listing').value='';resetState();select(null);renderSamples();setStatus('Вставьте текст объявления или ссылку на av.by.');$('url').focus();};w.append(n);}
 // Thumbnails of a listing loaded by link: shown for reference only, the model does not see them.
 function showPhotos(d){const w=$('photos');w.textContent='';w.hidden=!(d&&d.photos&&d.photos.length);
   $('srcNote').textContent=d?'Загружено с av.by: '+String(d.title).replace(/\.$/,'')+(/e34/i.test(d.generation||'')?'':'. Это не E34: кузов на модели остаётся E34, детали разбираются как есть.'):'';$('srcNote').hidden=!d;if(w.hidden)return;
-  d.photos.forEach(u=>{if(typeof u!=='string'||u.indexOf('https://avcdn.av.by/')!==0)return;const a=el('a'),im=el('img');a.href=d.url;a.target='_blank';a.rel='noopener noreferrer';
+  d.photos.forEach(u=>{if(typeof u!=='string'||u.indexOf('https://avcdn.av.by/')!==0)return;const a=el('a'),im=el('img');a.href=String(d.url).indexOf('https://cars.av.by/')===0?d.url:'#';a.target='_blank';a.rel='noopener noreferrer';
     im.src=u;im.alt='Фото из объявления';im.loading='lazy';im.referrerPolicy='no-referrer';a.append(im);w.append(a);});}
 function setStatus(t){$('status').textContent=t;}
+
+/* ---------- saved listings: kept on disk by server.py in data/listings.json ---------- */
+let saved=[],currentId=null,currentSrc=null,armed=null;
+const api=(method,path,body)=>fetch(path,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined}).then(r=>r.json()).catch(()=>null);
+function saveCurrent(){
+  if(!currentId)return;
+  const text=$('listing').value.slice(0,8000),title=ST.car.title!==DEFAULT_CAR.title?ST.car.title:(text.trim().split('\n')[0].slice(0,60)||DEFAULT_CAR.title);
+  const rec={id:currentId,title,savedAt:Date.now(),text,src:currentSrc,state:JSON.parse(JSON.stringify(ST))},i=saved.findIndex(x=>x.id===currentId);
+  if(i>=0)saved[i]=rec;else saved.unshift(rec);renderSaved();
+  api('POST','/api/saved',rec).then(r=>{if(!r||!r.ok)setStatus($('status').textContent+' Сохранить на диск не удалось.');});
+}
+function openSaved(rec){
+  if(busy)return;currentSample=-1;currentId=rec.id;currentSrc=rec.src||null;armed=null;
+  showPhotos(currentSrc);$('url').value=currentSrc&&currentSrc.url||'';$('listing').value=rec.text||'';
+  // Stored state goes back through applyLine, the same validation as model output.
+  resetState();const st=rec.state||{};
+  applyLine(Object.assign({t:'car'},st.car));
+  Object.keys(st.parts||{}).forEach(id=>applyLine(Object.assign({t:'part',id},st.parts[id])));
+  (st.questions||[]).forEach(q=>applyLine({t:'q',text:q&&q.text,part:q&&q.part}));
+  ST.qa=(Array.isArray(st.qa)?st.qa:[]).filter(x=>x&&typeof x.q==='string'&&typeof x.a==='string').slice(0,40).map(x=>({q:x.q.slice(0,260),a:x.a.slice(0,400)}));
+  KB.forEach((k,i)=>{if(st.kbDone&&st.kbDone[i])ST.kbDone[i]=true;});
+  ORDER.forEach(id=>PARTS[id].pulse=0);select(null);renderSamples();renderSaved();
+  setStatus('Открыто сохранённое объявление от '+new Date(rec.savedAt||Date.now()).toLocaleDateString('ru-RU')+'.');
+}
+function renderSaved(){
+  const w=$('saved');w.textContent='';$('savedWrap').hidden=!saved.length;
+  saved.forEach(rec=>{
+    const item=el('span','savedItem'),b=el('button','chip',rec.title),x=el('button','chip del',armed===rec.id?'Удалить?':'×');
+    b.type=x.type='button';b.setAttribute('aria-pressed',String(rec.id===currentId));b.onclick=()=>openSaved(rec);
+    x.setAttribute('aria-label',(armed===rec.id?'Подтвердить удаление: ':'Удалить: ')+rec.title);
+    // Deleting takes two clicks: the first one only arms the button.
+    x.onclick=()=>{if(busy)return;if(armed!==rec.id){armed=rec.id;renderSaved();return;}
+      armed=null;saved=saved.filter(r=>r.id!==rec.id);if(currentId===rec.id)currentId=null;renderSaved();renderSamples();api('DELETE','/api/saved/'+rec.id);};
+    item.append(b,x);w.append(item);});
+}
+api('GET','/api/saved').then(r=>{if(r&&Array.isArray(r.items)){saved=r.items.filter(x=>x&&typeof x.id==='string'&&typeof x.title==='string');renderSaved();}});
 
 /* ---------- fallback parser: keyword search, no AI ---------- */
 const COLORS=[[/черн/,'#111215','чёрный'],[/бел/,'#e9eaec','белый'],[/серебр/,'#b7bcc3','серебристый'],[/бордов|вишн|calypso/,'#6b1626','бордовый'],[/красн/,'#b01d24','красный'],
@@ -512,7 +548,7 @@ function buildPrompt(text,refine,nImg,question){
   +'Необязательные поля, добавляй только при необходимости: "note" у дефекта (если есть что добавить к цитате), "src":"infer" (если это твой вывод, а не слова продавца), "conf" от 0 до 1 (если уверенность ниже 0.8).\n'
   +'Общие слова вроде «не гнилая» или «состояние отличное» дают state ok с conf 0.3 и только для деталей, к которым фраза прямо относится.\n'
   +'3) В конце 2–4 строки с вопросами продавцу о том, о чём объявление молчит:\n{"t":"q","text":"вопрос","part":"sill_l"}\n\n'
-  +'Правила: не выдумывай дефекты. Деталь, о которой ничего не известно, не упоминай совсем. Левый и правый — по ходу движения. «Арки» без уточнения — задние крылья. note и вопросы пиши по-русски, коротко.\n\n'
+  +'Правила: не выдумывай дефекты. Деталь, о которой ничего не известно, не упоминай совсем. Левый и правый — по ходу движения. «Арки» без уточнения — задние крылья. Множественное число без указания стороны («пороги», «арки», «фары») означает обе стороны: выведи строку для левой и для правой детали. note и вопросы пиши по-русски, коротко.\n\n'
   +'Детали (id — название):\n'+ids+'\n'
   +(refine?'\nЧто уже известно о деталях (id: состояние):\n'+(Object.keys(ST.parts).map(id=>{const p=ST.parts[id];return id+': '+(p.state==='defect'?p.issues.map(i=>i.kind+' '+i.sev).join(', '):p.state);}).join('\n')||'ничего')+'\n':'')
   +(refine&&!question?'\nНиже не объявление, а дополнение от покупателя: ответ продавца или наблюдение. Выведи строки только для деталей, которые меняются. Строку car выводи, только если меняется цвет. Вопросы не нужны.\n':'')
@@ -526,7 +562,7 @@ function buildPrompt(text,refine,nImg,question){
 function tryLine(l){l=l.trim().replace(/,$/,'');if(l[0]!=='{')return false;try{applyLine(JSON.parse(l));return true;}catch(e){return false;}}
 async function analyze(text,refine,question){
   if(busy||!text.trim())return;busy=true;$('run').disabled=$('refineBtn').disabled=$('urlBtn').disabled=true;queueRender();
-  if(!refine){currentSample=-1;renderSamples();resetState();select(null);}
+  if(!refine){currentSample=-1;if(!currentId)currentId='l'+Date.now().toString(36);renderSamples();resetState();select(null);}
   const local=why=>{localParse(question?question+' — '+text:text).forEach(o=>{if(refine&&o.t==='car')return;applyLine(o);});setStatus(why+' Разобрано простым поиском по словам, точность ниже.');};
   try{
     const a=await agentP;
@@ -549,9 +585,13 @@ async function analyze(text,refine,question){
   }catch(e){
     if(e&&e.name==='AbortError')setStatus('Остановлено. Показано то, что успело прийти.');
     else local('Модель не ответила ('+(e&&e.message||'ошибка')+').');
-  }finally{busy=false;ctl=null;$('stop').hidden=true;$('run').disabled=$('refineBtn').disabled=$('urlBtn').disabled=false;queueRender();}
+  }finally{busy=false;ctl=null;$('stop').hidden=true;$('run').disabled=$('refineBtn').disabled=$('urlBtn').disabled=false;queueRender();saveCurrent();}
 }
-$('run').onclick=()=>analyze($('listing').value,false);
+$('run').onclick=()=>{
+  // Different text under a saved listing is a new listing, not an overwrite of the old one.
+  const rec=saved.find(x=>x.id===currentId),text=$('listing').value;
+  if(rec&&rec.text.trim()!==text.trim()){currentId=null;currentSrc=null;showPhotos(null);$('url').value='';}
+  analyze(text,false);};
 const URL_ERR={bad_url:'Это не похоже на ссылку объявления av.by. Нужна ссылка вида cars.av.by/bmw/5-seriya/123456789.',not_found:'Объявление не найдено: возможно, оно снято с продажи.',unavailable:'av.by сейчас не отвечает. Попробуйте ещё раз или вставьте текст вручную.'};
 async function loadUrl(){
   const url=$('url').value.trim();if(!url||busy)return;
@@ -560,7 +600,7 @@ async function loadUrl(){
   $('urlBtn').disabled=false;
   if(!d||!d.ok){setStatus(URL_ERR[d&&d.error]||URL_ERR.unavailable);return;}
   $('listing').value=d.text;showPhotos(d);
-  currentSample=-1;return analyze(d.text,false);
+  currentSample=-1;currentId=null;currentSrc={title:d.title,generation:d.generation,url:d.url,photos:d.photos};return analyze(d.text,false);
 }
 $('urlBtn').onclick=loadUrl;$('url').addEventListener('keydown',e=>{if(e.key==='Enter')loadUrl();});
 $('stop').onclick=()=>{if(ctl)ctl.abort();};

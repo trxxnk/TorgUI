@@ -8,6 +8,7 @@ import json
 import os
 import re
 import sys
+import threading
 import urllib.error
 import urllib.request
 from functools import partial
@@ -71,6 +72,46 @@ def fetch_listing(url):
 LOCAL = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 
+# User's saved listings. Real listing text lives here, so data/ is gitignored.
+DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "listings.json")
+DATA_LOCK = threading.Lock()
+SAVED_ID = re.compile(r"^[a-z0-9]{1,24}$")
+MAX_SAVED = 200
+
+
+def load_saved():
+    try:
+        with open(DATA, encoding="utf8") as f:
+            items = json.load(f)
+        return items if isinstance(items, list) else []
+    except (OSError, ValueError):
+        return []
+
+
+def write_saved(items):
+    os.makedirs(os.path.dirname(DATA), exist_ok=True)
+    tmp = DATA + ".tmp"
+    with open(tmp, "w", encoding="utf8") as f:
+        json.dump(items, f, ensure_ascii=False, indent=1)
+    os.replace(tmp, DATA)  # atomic: a crash never leaves a half-written file
+
+
+def upsert_saved(rec):
+    if not isinstance(rec, dict) or not SAVED_ID.match(str(rec.get("id", ""))):
+        return False
+    rec = {k: rec.get(k) for k in ("id", "title", "savedAt", "text", "src", "state")}
+    with DATA_LOCK:
+        items = [x for x in load_saved() if x.get("id") != rec["id"]]
+        write_saved(([rec] + items)[:MAX_SAVED])
+    return True
+
+
+def delete_saved(sid):
+    with DATA_LOCK:
+        items = load_saved()
+        write_saved([x for x in items if x.get("id") != sid])
+
+
 def pick_model():
     with LOCAL.open(LLM_URL + "/v1/models", timeout=4) as r:
         ids = [m["id"] for m in json.load(r).get("data", [])]
@@ -103,10 +144,21 @@ class Handler(SimpleHTTPRequestHandler):
             except Exception as e:  # LM Studio down, no models loaded
                 self._json(200, {"ok": False, "error": str(e)})
             return
+        if self.path == "/api/saved":
+            self._json(200, {"ok": True, "items": load_saved()})
+            return
         super().do_GET()
 
+    def do_DELETE(self):
+        sid = self.path[len("/api/saved/"):] if self.path.startswith("/api/saved/") else ""
+        if not SAVED_ID.match(sid):
+            self._json(404, {"error": "not found"})
+            return
+        delete_saved(sid)
+        self._json(200, {"ok": True})
+
     def do_POST(self):
-        if self.path not in ("/api/chat", "/api/listing"):
+        if self.path not in ("/api/chat", "/api/listing", "/api/saved"):
             self._json(404, {"error": "not found"})
             return
         n = int(self.headers.get("Content-Length") or 0)
@@ -114,6 +166,12 @@ class Handler(SimpleHTTPRequestHandler):
             self._json(413, {"error": "bad body size"})
             return
         raw = self.rfile.read(n)
+        if self.path == "/api/saved":
+            try:
+                self._json(200, {"ok": upsert_saved(json.loads(raw))})
+            except Exception:
+                self._json(200, {"ok": False})
+            return
         if self.path == "/api/listing":
             try:
                 self._json(200, fetch_listing(str(json.loads(raw)["url"])))
